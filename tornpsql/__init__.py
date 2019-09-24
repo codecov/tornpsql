@@ -101,9 +101,10 @@ class _Connection(object):
                         user=user, password=password)
 
         self._db = None
-        self._db_args = args
         self._register_types = []
         self._change_path = None
+
+        self.pool = psycopg2.pool.SimpleConnectionPool(1, 20, *args)
         try:
             self.reconnect()
         except Exception as err:  # pragma: no cover
@@ -134,7 +135,7 @@ class _Connection(object):
     def _reconnect(self):
         """Closes the existing database connection and re-opens it."""
         self.close()
-        self._db = psycopg2.connect(**self._db_args)
+        self._db = self.pool.getconn()
 
         if self._search_path:
             self.execute('set search_path=%s;' % self._search_path)
@@ -326,33 +327,6 @@ class Connection(_Connection):
         self._reconnect()
         self._db.autocommit = True
         self._reregister_types()
-
-
-class TransactionalConnection(_Connection):
-    def __init__(self, host_or_url=None, database=None, user=None, password=None, port=5432,
-                 search_path=None, timezone=None,
-                 isolation_level=None, readonly=None,
-                 deferrable=None):
-
-        self.isolation_level = isolation_level
-        self.readonly = readonly
-        self.deferrable = deferrable
-
-        super(TransactionalConnection, self).__init__(
-            host_or_url=host_or_url, database=database, user=user, password=password, port=port,
-            search_path=search_path, timezone=timezone
-        )
-
-    def reconnect(self):
-        self._reconnect()
-        self._db.set_session(isolation_level=self.isolation_level, readonly=self.readonly, deferrable=self.deferrable)
-        self._reregister_types()
-
-    def commit(self):
-        self._db.commit()
-
-    def rollback(self):
-        self._db.rollback()
 
 
 class Row(dict):
