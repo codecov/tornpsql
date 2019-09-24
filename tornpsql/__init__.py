@@ -104,7 +104,7 @@ class _Connection(object):
         self._register_types = []
         self._change_path = None
 
-        self.pool = psycopg2.pool.SimpleConnectionPool(1, 20, *args)
+        self.pool = psycopg2.pool.SimpleConnectionPool(1, 20, **args)
         try:
             self.reconnect()
         except Exception as err:  # pragma: no cover
