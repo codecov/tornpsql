@@ -23,12 +23,13 @@ from psycopg2 import ProgrammingError
 from psycopg2 import NotSupportedError
 
 
-__version__ = VERSION = version = '2.0.1'
+__version__ = VERSION = version = '2.1.2'
 
 
 _RE_WS = re.compile(r'\n\s*')
 _RE_PSQL_URL = re.compile(r'^postgres://(?P<user>[^:]*):?(?P<password>[^@]*)@(?P<host>[^:]+):?(?P<port>\d+)/?(?P<database>[^#]+)(?P<search_path>#.+)?(?P<timezone>@.+)?$')
-
+MIN_CONNECTION_POOL = 1
+MAX_CONNECTION_POOL = 5
 
 class PubSub(object):
     def __init__(self, db):
@@ -105,7 +106,7 @@ class _Connection(object):
         self._register_types = []
         self._change_path = None
 
-        self.pool = pool.SimpleConnectionPool(1, 20, **args)
+        self.pool = pool.ThreadedConnectionPool(MIN_CONNECTION_POOL, MAX_CONNECTION_POOL, **args)
         try:
             self.reconnect()
         except Exception as err:  # pragma: no cover
