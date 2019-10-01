@@ -6,6 +6,7 @@ import psycopg2
 import psycopg2.extras
 from select import select
 from psycopg2.extras import Json
+from psycopg2 import pool
 from psycopg2.extensions import adapt
 from psycopg2.extras import HstoreAdapter
 
@@ -104,7 +105,7 @@ class _Connection(object):
         self._register_types = []
         self._change_path = None
 
-        self.pool = psycopg2.pool.SimpleConnectionPool(1, 20, **args)
+        self.pool = pool.SimpleConnectionPool(1, 20, **args)
         try:
             self.reconnect()
         except Exception as err:  # pragma: no cover
