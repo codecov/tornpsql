@@ -4,18 +4,16 @@ sudo: false
 
 python:
   - 2.7
-  - 3.3
-  - 3.4
 
 env:
   global:
     - DATABASE_URL=postgres://postgres:@127.0.0.1:5432/tornpsql
     - DATABASE_USER=postgres
 
-services: postgres
+services: postgresql
 
 addons:
-  postgresql: "9.3"
+  postgresql: "9.6"
 
 before_script:
   - python setup.py install

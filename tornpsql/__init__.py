@@ -6,6 +6,7 @@ import psycopg2
 import psycopg2.extras
 from select import select
 from psycopg2.extras import Json
+from psycopg2 import pool
 from psycopg2.extensions import adapt
 from psycopg2.extras import HstoreAdapter
 
@@ -22,49 +23,13 @@ from psycopg2 import ProgrammingError
 from psycopg2 import NotSupportedError
 
 
-__version__ = VERSION = version = '2.0.1'
+__version__ = VERSION = version = '2.1.4'
 
 
 _RE_WS = re.compile(r'\n\s*')
 _RE_PSQL_URL = re.compile(r'^postgres://(?P<user>[^:]*):?(?P<password>[^@]*)@(?P<host>[^:]+):?(?P<port>\d+)/?(?P<database>[^#]+)(?P<search_path>#.+)?(?P<timezone>@.+)?$')
-
-
-class PubSub(object):
-    def __init__(self, db):
-        self._db = db
-        self._cur = db.cursor()
-        self._channels = []
-
-    @property
-    def channels(self):
-        return list(self._channels)
-
-    def subscribe(self, channels):
-        assert type(channels) in (tuple, list), 'Invalid channels. Must be tuple or list of strings'
-        self._channels = set(list(self._channels) + list(channels))
-
-    def unsubscribe(self, channels=None):
-        if channels:
-            assert type(channels) in (tuple, list), 'Invalid channels. Must be tuple or list of strings'
-            self._cur.execute(''.join(['UNLISTEN %s;' % c for c in list(channels)]))
-            [self._channels.remove(channel) for channel in channels]
-        else:
-            self._cur.execute(''.join(['UNLISTEN %s;' % c for c in list(self._channels)]))
-            self._channels = []
-
-    def __iter__(self):
-        while len(self._channels) > 0:
-            if select([self._db], [], [], 5) != ([], [], []):
-                self._db.poll()
-                while self._db.notifies:
-                    yield self._db.notifies.pop()
-
-    def listen(self):
-        assert self._channels, 'No channels to listen to.'
-        for channel in self._channels:
-            self._cur.execute('LISTEN %s;' % channel)
-        return self
-
+MIN_CONNECTION_POOL = int(os.getenv('DATABASE__MIN_CONNECTION_POOL', "1"))
+MAX_CONNECTION_POOL = int(os.getenv('DATABASE__MAX_CONNECTION_POOL', "5"))
 
 try:
     basestring
@@ -101,9 +66,10 @@ class _Connection(object):
                         user=user, password=password)
 
         self._db = None
-        self._db_args = args
         self._register_types = []
         self._change_path = None
+
+        self.pool = pool.ThreadedConnectionPool(MIN_CONNECTION_POOL, MAX_CONNECTION_POOL, **args)
         try:
             self.reconnect()
         except Exception as err:  # pragma: no cover
@@ -128,13 +94,11 @@ class _Connection(object):
     def close(self):
         """Closes this database connection."""
         if getattr(self, '_db', None) is not None:
-            self._db.close()
             self._db = None
 
     def _reconnect(self):
-        """Closes the existing database connection and re-opens it."""
-        self.close()
-        self._db = psycopg2.connect(**self._db_args)
+        """ Gets a new connection from the pool"""
+        self._db = self.pool.getconn()
 
         if self._search_path:
             self.execute('set search_path=%s;' % self._search_path)
@@ -299,9 +263,6 @@ class _Connection(object):
             self.close()
             raise
 
-    def pubsub(self):
-        return PubSub(self._db)
-
     def file(self, path, _execute=True):
         base = os.path.dirname(path)
         with open(path) as r:
@@ -326,33 +287,6 @@ class Connection(_Connection):
         self._reconnect()
         self._db.autocommit = True
         self._reregister_types()
-
-
-class TransactionalConnection(_Connection):
-    def __init__(self, host_or_url=None, database=None, user=None, password=None, port=5432,
-                 search_path=None, timezone=None,
-                 isolation_level=None, readonly=None,
-                 deferrable=None):
-
-        self.isolation_level = isolation_level
-        self.readonly = readonly
-        self.deferrable = deferrable
-
-        super(TransactionalConnection, self).__init__(
-            host_or_url=host_or_url, database=database, user=user, password=password, port=port,
-            search_path=search_path, timezone=timezone
-        )
-
-    def reconnect(self):
-        self._reconnect()
-        self._db.set_session(isolation_level=self.isolation_level, readonly=self.readonly, deferrable=self.deferrable)
-        self._reregister_types()
-
-    def commit(self):
-        self._db.commit()
-
-    def rollback(self):
-        self._db.rollback()
 
 
 class Row(dict):

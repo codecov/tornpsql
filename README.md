@@ -1,7 +1,7 @@
 tornpsql
 ========
 
-[![Build Status](https://secure.travis-ci.org/stevepeak/tornpsql.png)](http://travis-ci.org/stevepeak/tornpsql)  [![codecov.io](https://codecov.io/gh/stevepeak/tornpsql/branch/master/graph/badge.svg)](https://codecov.io/gh/stevepeak/tornpsql)
+[![Build Status](https://secure.travis-ci.org/codecov/tornpsql.png)](http://travis-ci.org/codecov/tornpsql)  [![codecov.io](https://codecov.io/gh/codecov/tornpsql/branch/master/graph/badge.svg)](https://codecov.io/gh/codecov/tornpsql)
 
 `pip install tornpsql`
 
