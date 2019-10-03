@@ -131,12 +131,11 @@ class _Connection(object):
     def close(self):
         """Closes this database connection."""
         if getattr(self, '_db', None) is not None:
-            self._db.close()
+            self._db.putconn(close=True)
             self._db = None
 
     def _reconnect(self):
-        """Closes the existing database connection and re-opens it."""
-        self.close()
+        """ Gets a new connection from the pool"""
         self._db = self.pool.getconn()
 
         if self._search_path:
