@@ -131,7 +131,6 @@ class _Connection(object):
     def close(self):
         """Closes this database connection."""
         if getattr(self, '_db', None) is not None:
-            self._db.putconn(close=True)
             self._db = None
 
     def _reconnect(self):
