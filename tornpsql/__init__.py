@@ -28,8 +28,8 @@ __version__ = VERSION = version = '2.1.4'
 
 _RE_WS = re.compile(r'\n\s*')
 _RE_PSQL_URL = re.compile(r'^postgres://(?P<user>[^:]*):?(?P<password>[^@]*)@(?P<host>[^:]+):?(?P<port>\d+)/?(?P<database>[^#]+)(?P<search_path>#.+)?(?P<timezone>@.+)?$')
-MIN_CONNECTION_POOL = 1
-MAX_CONNECTION_POOL = 5
+MIN_CONNECTION_POOL = int(os.getenv('DATABASE__MIN_CONNECTION_POOL', "1"))
+MAX_CONNECTION_POOL = int(os.getenv('DATABASE__MAX_CONNECTION_POOL', "5"))
 
 try:
     basestring
