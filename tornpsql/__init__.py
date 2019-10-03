@@ -31,43 +31,6 @@ _RE_PSQL_URL = re.compile(r'^postgres://(?P<user>[^:]*):?(?P<password>[^@]*)@(?P
 MIN_CONNECTION_POOL = 1
 MAX_CONNECTION_POOL = 5
 
-class PubSub(object):
-    def __init__(self, db):
-        self._db = db
-        self._cur = db.cursor()
-        self._channels = []
-
-    @property
-    def channels(self):
-        return list(self._channels)
-
-    def subscribe(self, channels):
-        assert type(channels) in (tuple, list), 'Invalid channels. Must be tuple or list of strings'
-        self._channels = set(list(self._channels) + list(channels))
-
-    def unsubscribe(self, channels=None):
-        if channels:
-            assert type(channels) in (tuple, list), 'Invalid channels. Must be tuple or list of strings'
-            self._cur.execute(''.join(['UNLISTEN %s;' % c for c in list(channels)]))
-            [self._channels.remove(channel) for channel in channels]
-        else:
-            self._cur.execute(''.join(['UNLISTEN %s;' % c for c in list(self._channels)]))
-            self._channels = []
-
-    def __iter__(self):
-        while len(self._channels) > 0:
-            if select([self._db], [], [], 5) != ([], [], []):
-                self._db.poll()
-                while self._db.notifies:
-                    yield self._db.notifies.pop()
-
-    def listen(self):
-        assert self._channels, 'No channels to listen to.'
-        for channel in self._channels:
-            self._cur.execute('LISTEN %s;' % channel)
-        return self
-
-
 try:
     basestring
 except NameError:
@@ -299,9 +262,6 @@ class _Connection(object):
             logging.error('Error connecting to PostgreSQL on %s, e', self.host, e)
             self.close()
             raise
-
-    def pubsub(self):
-        return PubSub(self._db)
 
     def file(self, path, _execute=True):
         base = os.path.dirname(path)
