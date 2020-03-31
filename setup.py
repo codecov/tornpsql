@@ -17,5 +17,5 @@ setup(name='tornpsql',
       packages=['tornpsql'],
       include_package_data=True,
       zip_safe=True,
-      install_requires=["psycopg2>=2.5.2"],
+      install_requires=["psycopg2>=2.5.2", "furl>=2.1.0"],
       entry_points="")

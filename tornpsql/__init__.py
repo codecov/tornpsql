@@ -4,6 +4,7 @@ import os
 import logging
 import psycopg2
 import psycopg2.extras
+from furl import furl
 from select import select
 from psycopg2.extras import Json
 from psycopg2 import pool
@@ -51,7 +52,9 @@ class _Connection(object):
             try:
                 args = _RE_PSQL_URL.match(host_or_url).groupdict()
             except:
-                raise ValueError('PostgreSQL url is not a valid format postgres://user:password@host:post/database from %s' % host_or_url)
+                o = furl(host_or_url)
+                o.username = o.password = "XXXXXXXX"
+                raise ValueError('PostgreSQL url is not a valid format postgres://user:password@host:port/database from %s' % o.tostr())
             else:
                 self.host = args.get('host')
                 self.database = args.get('database')
