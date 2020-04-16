@@ -76,8 +76,8 @@ class _Connection(object):
         try:
             self.reconnect()
         except Exception as err:  # pragma: no cover
-            logging.error('%s: Cannot connect to PostgreSQL on postgresql://%s:<password>@%s:%s/%s',
-                          str(type(err)), args['user'], self.host, args['port'], self.database)
+            logging.error('%s: Cannot connect to PostgreSQL on postgresql://<user>:<password>@%s:%s/%s',
+                          str(type(err)), self.host, args['port'], self.database)
 
         try:
             psycopg2.extras.register_hstore(self._db, globally=True)

@@ -30,13 +30,16 @@ class ConnectionTestCase(unittest.TestCase):
         db = tornpsql.Connection(os.getenv("ALTERNATE_DATABASE_URL"))
         self.assertTrue(db.get("select true as connected").connected)
 
-    def test_invlid_connection_args(self):
+    def test_invalid_connection_args(self):
         "can parse connection url"
         self.assertRaises(ValueError, tornpsql.Connection, "postgres://user:pass@server:port/database")
         self.assertRaises(ValueError, tornpsql.Connection, "postgres://server:port/")
         self.assertRaises(ValueError, tornpsql.Connection, "postgres://user:password@server:invalid/database")
         self.assertRaises(ValueError, tornpsql.Connection, "postgres://user:password@server/database")
         self.assertRaises(ValueError, tornpsql.Connection, "postgres://user:password@:5432")
+        with self.assertRaises(ValueError) as ex:
+          tornpsql.Connection("postgres://user:password@:5432")
+        self.assertEqual(ex.exception.args[0], "PostgreSQL url is not a valid format postgres://user:password@host:port/database from postgres://XXXXXXXX:XXXXXXXX@:5432")
 
     def test_registering_type(self):
         "can register custom types"
